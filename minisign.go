@@ -48,7 +48,7 @@ func DecodePublicKey(in string) (PublicKey, error) {
 func DecodeSignature(in string) (Signature, error) {
 	var signature Signature
 	lines := strings.SplitN(in, "\n", 4)
-	if len(lines) < 4 {
+	if len(lines) < 4 && len(lines) != 2 {
 		return signature, errors.New("Incomplete encoded signature")
 	}
 	signature.UntrustedComment = lines[0]
@@ -56,15 +56,18 @@ func DecodeSignature(in string) (Signature, error) {
 	if err != nil || len(bin1) != 74 {
 		return signature, errors.New("Invalid encoded signature")
 	}
-	signature.TrustedComment = lines[2]
-	bin2, err := base64.StdEncoding.DecodeString(lines[3])
-	if err != nil || len(bin2) != 64 {
-		return signature, errors.New("Invalid encoded signature")
-	}
 	copy(signature.SignatureAlgorithm[:], bin1[0:2])
 	copy(signature.KeyId[:], bin1[2:10])
 	copy(signature.Signature[:], bin1[10:74])
-	copy(signature.GlobalSignature[:], bin2)
+
+	if len(lines) == 4 {
+		signature.TrustedComment = lines[2]
+		bin2, err := base64.StdEncoding.DecodeString(lines[3])
+		if err != nil || len(bin2) != 64 {
+			return signature, errors.New("Invalid encoded signature")
+		}
+		copy(signature.GlobalSignature[:], bin2)
+	}
 	return signature, nil
 }
 
